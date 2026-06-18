@@ -7,3 +7,9 @@ variable "railway_project_name" {
   type    = string
   default = "optcg-ruling"
 }
+
+variable "github_repo" {
+  type        = string
+  default     = "barrejordycira-spec/optcg-ruling-bmad"
+  description = "GitHub repo (owner/name) the app service deploys from."
+}

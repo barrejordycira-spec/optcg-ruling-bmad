@@ -55,16 +55,21 @@ resource "random_password" "postgres" {
   special = false # avoid chars that need URL-encoding in a connection string
 }
 
-# NOTE on volumes: this community provider has a bug where a `volume` nested block
-# triggers "Provider produced inconsistent result after apply" (returns null volume),
-# failing the apply. So volumes are NOT managed here — attach a persistent volume to
-# the postgres service via the Railway dashboard (Service → Settings → Volumes,
-# mount path `/var/lib/postgresql/data`). PGDATA below already points at a subdir so it
-# works whether or not a volume is mounted.
+# NOTE on volumes: this community provider (0.6.2, latest) returns a null volume on
+# create, so the first `terraform apply` errors with "Provider produced inconsistent
+# result after apply" even though the volume IS created on Railway. Workaround: run
+# `terraform apply` a second time — the refresh reconciles the already-created volume.
+# PGDATA points at a subdir of the mount so initdb works (Railway volumes have a
+# lost+found at the mount root).
 resource "railway_service" "postgres" {
   project_id   = railway_project.main.id
   name         = "postgres"
   source_image = "pgvector/pgvector:pg18"
+
+  volume = {
+    name       = "postgres-data"
+    mount_path = "/var/lib/postgresql/data"
+  }
 }
 
 resource "railway_variable" "postgres_user" {
@@ -98,9 +103,10 @@ resource "railway_variable" "postgres_pgdata" {
 }
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
-# Redis is a cache (Story 2.2) — ephemeral is acceptable; no volume needed here.
-# (Same provider volume bug as postgres above; attach via dashboard if persistence
-# is ever required.)
+# Redis cache (Story 2.2) — intentionally ephemeral (no volume): cache data is
+# reconstructible, and this provider + Railway's volume API cannot manage a redis
+# volume cleanly (volumeDelete is async/non-effective, so volume names linger and
+# collide on re-create). Postgres keeps its volume because its data must persist.
 resource "railway_service" "redis" {
   project_id   = railway_project.main.id
   name         = "redis"

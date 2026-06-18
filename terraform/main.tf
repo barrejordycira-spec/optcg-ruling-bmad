@@ -103,12 +103,17 @@ resource "railway_variable" "postgres_pgdata" {
 }
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
-# Redis cache (Story 2.2) — intentionally ephemeral (no volume): cache data is
-# reconstructible, and this provider + Railway's volume API cannot manage a redis
-# volume cleanly (volumeDelete is async/non-effective, so volume names linger and
-# collide on re-create). Postgres keeps its volume because its data must persist.
+# Redis cache (Story 2.2) with a persistent volume. Same two-apply note as postgres:
+# the first `terraform apply` errors with "inconsistent result" but creates the volume,
+# the second reconciles. The volume name is unique (`redis-cache-vol`) to dodge the
+# lingering orphan-volume name collisions left by Railway's non-effective volumeDelete.
 resource "railway_service" "redis" {
   project_id   = railway_project.main.id
   name         = "redis"
   source_image = "redis:8.2.1"
+
+  volume = {
+    name       = "redis-cache-vol"
+    mount_path = "/data"
+  }
 }

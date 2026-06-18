@@ -41,6 +41,14 @@ resource "railway_service_domain" "app" {
   subdomain      = var.railway_project_name
 }
 
+resource "railway_variable" "app_sentry_dsn" {
+  count          = var.sentry_dsn == "" ? 0 : 1
+  environment_id = local.environment_id
+  service_id     = railway_service.app.id
+  name           = "SENTRY_DSN"
+  value          = var.sentry_dsn
+}
+
 # ── PostgreSQL (with pgvector) ────────────────────────────────────────────────
 resource "random_password" "postgres" {
   length  = 24

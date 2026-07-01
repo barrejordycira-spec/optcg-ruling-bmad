@@ -19,3 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
+      - run: npm run build
+        env:
+          # Build only — no real Sentry upload (no auth token in CI); keeps `next build` exercised.
+          NEXT_TELEMETRY_DISABLED: '1'

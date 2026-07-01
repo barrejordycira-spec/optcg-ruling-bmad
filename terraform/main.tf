@@ -49,6 +49,16 @@ resource "railway_variable" "app_sentry_dsn" {
   value          = var.sentry_dsn
 }
 
+# Same DSN, exposed to the browser bundle. Railway provides this as a build arg
+# (see Dockerfile `ARG NEXT_PUBLIC_SENTRY_DSN`) so it is inlined at `next build`.
+resource "railway_variable" "app_sentry_dsn_public" {
+  count          = var.sentry_dsn == "" ? 0 : 1
+  environment_id = local.environment_id
+  service_id     = railway_service.app.id
+  name           = "NEXT_PUBLIC_SENTRY_DSN"
+  value          = var.sentry_dsn
+}
+
 # ── PostgreSQL (with pgvector) ────────────────────────────────────────────────
 resource "random_password" "postgres" {
   length  = 24
